@@ -33,15 +33,15 @@ struct os_task *os_get_cur_task(void)
 
 const char *os_get_cur_task_name(void)
 {
-    if(cur_task_ptr)
-        return (const char *) cur_task_ptr->name;
+    if (cur_task_ptr)
+        return (const char *)cur_task_ptr->name;
     return "";
 }
 
 static void *start_thread_context(void *p)
 {
-    struct os_task *ppar = (struct os_task *) p;
-    if(thread_num < MAX_THREAD_NUM - 1)
+    struct os_task *ppar = (struct os_task *)p;
+    if (thread_num < MAX_THREAD_NUM - 1)
     {
         cur_task_ptr = &threads[thread_num++];
         memset(cur_task_ptr, 0, sizeof(*cur_task_ptr));
@@ -50,12 +50,13 @@ static void *start_thread_context(void *p)
         cur_task_ptr->data = ppar->data;
         memcpy(cur_task_ptr->name, ppar->name, sizeof(cur_task_ptr->name));
         sem_init(&cur_task_ptr->sem, 0, 1);
-        if(cur_task_ptr->entry_func)
+        if (cur_task_ptr->entry_func)
         {
             sem_post(&sem_create);
             sem_wait(&sem_start);
             sem_post(&sem_start);
-            os_printf("start thread #%s %p %x\n", cur_task_ptr->name, cur_task_ptr->entry_func, (unsigned int) cur_task_ptr->data);
+            os_printf("start thread #%s %p %x\n", cur_task_ptr->name, cur_task_ptr->entry_func,
+                      (unsigned int)cur_task_ptr->data);
             cur_task_ptr->entry_func(cur_task_ptr->data);
             os_printf("stop thread #%s\n", cur_task_ptr->name);
         }
@@ -75,7 +76,7 @@ int os_create_task(const char *name, void (*entry_func)(void *), int priority, v
 
     pthread_attr_t tattr;
 
-    os_printf("os_create_task %s %p %x\n", name, entry_func, (unsigned int) data);
+    os_printf("os_create_task %s %p %x\n", name, entry_func, (unsigned int)data);
     pthread_attr_init(&tattr);
 
     pthread_attr_setstacksize(&tattr, STACK_LEN);
@@ -84,7 +85,7 @@ int os_create_task(const char *name, void (*entry_func)(void *), int priority, v
     sh_policy = SCHED_OTHER;
 
     res = pthread_attr_setschedpolicy(&tattr, sh_policy);
-    if(res)
+    if (res)
     {
         os_printf("pthread_attr_setschedpolicy err %s,ret:%d\n", name, res);
         return -1;
@@ -93,12 +94,12 @@ int os_create_task(const char *name, void (*entry_func)(void *), int priority, v
 
     param.sched_priority = (max_task_prior - priority);
 
-    if(sh_policy == SCHED_OTHER)
+    if (sh_policy == SCHED_OTHER)
     {
         param.sched_priority = 0;
     }
     res = pthread_attr_setschedparam(&tattr, &param);
-    if(res)
+    if (res)
     {
         os_printf("pthread_attr_setschedparam err %s,ret:%d\n", name, res);
         return -1;
@@ -110,22 +111,22 @@ int os_create_task(const char *name, void (*entry_func)(void *), int priority, v
     par.priority = priority;
     par.data = data;
 
-    res = pthread_create(pthread, &tattr, start_thread_context, (void *) &par);
-    if(res)
+    res = pthread_create(pthread, &tattr, start_thread_context, (void *)&par);
+    if (res)
     {
         os_printf("pthread_create err %s,ret:%d\n", name, res);
         return -1;
     }
     res = pthread_detach(*pthread);
-    if(res)
+    if (res)
     {
         os_printf("pthread_detach err %s,ret:%d\n", name, res);
         return -1;
     }
-    if(sh_policy != SCHED_OTHER)
+    if (sh_policy != SCHED_OTHER)
     {
         res = pthread_setschedparam(*pthread, sh_policy, &param);
-        if(res != 0)
+        if (res != 0)
         {
             os_printf("pthread_setschedparam err %s\n", strerror(errno));
             return -1;

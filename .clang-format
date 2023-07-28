@@ -1,0 +1,48 @@
+---
+Language:        Cpp
+BasedOnStyle:  Google
+
+BreakBeforeBraces: Custom
+BraceWrapping:
+  AfterCaseLabel:  true
+  AfterClass:      true
+  AfterControlStatement: Always
+  AfterEnum:       true
+  AfterFunction:   true
+  AfterNamespace:  true
+  AfterObjCDeclaration: true
+  AfterStruct:     true
+  AfterUnion:      true
+  AfterExternBlock: true
+  BeforeCatch:     true
+  BeforeElse:      true
+  BeforeLambdaBody: false
+  BeforeWhile:     true
+  IndentBraces:    false
+  SplitEmptyFunction: true
+  SplitEmptyRecord: true
+  SplitEmptyNamespace: true
+
+AllowShortEnumsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: InlineOnly
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+PackConstructorInitializers: CurrentLine
+ConstructorInitializerIndentWidth: 4
+
+SortIncludes: Never
+
+IndentExternBlock: NoIndent
+IndentGotoLabels: false
+IndentPPDirectives: None
+
+ColumnLimit: 120
+IndentWidth: 4
+MaxEmptyLinesToKeep: 1
+SpacesBeforeTrailingComments: 2
+
+ReflowComments: false
+---

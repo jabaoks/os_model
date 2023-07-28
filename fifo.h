@@ -1,42 +1,45 @@
-/*
- * fifo.h
- */
-#ifndef __FIFO_H
-#define __FIFO_H
+
+#ifndef _FIFO_H_
+#define _FIFO_H_
 
 #include "rtos.h"
-
-typedef struct
-{
-    unsigned char *beg;
-    unsigned int limit;
-    volatile unsigned int size;
-    volatile unsigned int rdIdx;
-    volatile unsigned int rd_size;
-    volatile unsigned int wrIdx;
-    volatile unsigned int wr_cnt;
-    volatile unsigned int wr_size;
-    MUTEX_ID mutex;
-    short id;
-    volatile unsigned short overflow_cnt;
-} Fifo;
 
 #ifdef __cplusplus
 extern "C"
 {
 #endif
 
-    unsigned int fifo_InsBlock(Fifo * fifo, const unsigned char *pData, unsigned int len);
-    unsigned int fifo_ExtrBlock(Fifo * fifo, unsigned char *pBuf, unsigned int len);
-    unsigned int fifo_InsBlock_Overwrite(Fifo * fifo, const unsigned char *pData, unsigned int len, int *over_flag);
-    void fifo_InitFifo(Fifo * fifo, unsigned char *buf, unsigned int size);
-    unsigned int fifo_GetDataLen(const Fifo * fifo);
-    unsigned int fifo_GetFreeLen(const Fifo * fifo);
-    unsigned int fifo_ExtrBlock_Box(Fifo * fifo, unsigned char *pBuf, unsigned int len);
-    unsigned int fifo_InsBlock_Box(Fifo * fifo, const unsigned char *pData, unsigned int len);
+#define USE_ATOMIC_MEM __ATOMIC_SEQ_CST
+
+#define ATOMIC_UINT volatile unsigned int
+
+typedef struct
+{
+    unsigned int limit;
+    ATOMIC_UINT size;
+    ATOMIC_UINT rdIdx;
+    ATOMIC_UINT rd_size;
+    ATOMIC_UINT wrIdx;
+    ATOMIC_UINT wr_cnt;
+    ATOMIC_UINT wr_size;
+#ifndef USE_ATOMIC_MEM
+    SYS_PMUTEX *mutex;
+#endif
+    // for integrity check
+    short id;
+    volatile unsigned short overflow_cnt;
+} Fifo;
+
+unsigned int fifo_InsBlock(Fifo *fifo, const void *pData, unsigned int len);
+unsigned int fifo_InsBlocks(Fifo *fifo, const void **pData, const unsigned int *plen, int cnt);
+unsigned int fifo_ExtrBlock(Fifo *fifo, void *pBuf, unsigned int len);
+void fifo_InitFifo(Fifo *fifo, void *buf, unsigned int size);
+unsigned int fifo_GetDataLen(const Fifo *fifo);
+unsigned int fifo_GetFreeLen(const Fifo *fifo);
+unsigned int fifo_ExtrBlock_Box(Fifo *fifo, void *pBuf, unsigned int len);
+unsigned int fifo_InsBlock_Box(Fifo *fifo, const void *pData, unsigned int len);
 
 #ifdef __cplusplus
 }
 #endif
-
-#endif
+#endif  // _FIFO_H_

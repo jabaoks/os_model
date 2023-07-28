@@ -52,16 +52,14 @@ static void *io_allocate_mem(int size)
     IO_DATA *iptr;
     char *ret;
     iptr = GET_IO_DATA_PTR();
-    if(iptr->mem_ptr + size > iptr->io_buf + iptr->mem_size)
+    if (iptr->mem_ptr + size > iptr->io_buf + iptr->mem_size)
     {
         return 0;
     }
     ret = iptr->mem_ptr;
+    if (size & 3)
+      size = (size & ~3) + 4;
     iptr->mem_ptr += size;
-    if((unsigned int) iptr->mem_ptr & 3)
-    {
-        iptr->mem_ptr = (char *) ((unsigned int) iptr->mem_ptr & ~3) + 4;
-    }
     return ret;
 }
 
@@ -70,10 +68,10 @@ int io_init(void *buf, int len)
     IO_DATA *iptr;
 
     iptr = GET_IO_DATA_PTR();
-    if(iptr == NULL)
+    if (iptr == NULL)
         return IO_ERR;
     iptr->mem_size = (len & ~3) + 4;
-    if(iptr->mem_size <= 0)
+    if (iptr->mem_size <= 0)
         return IO_ERR;
 
     iptr->io_buf = buf;
@@ -87,37 +85,37 @@ int io_open(short id, int cnt, int size, unsigned int mode)
     IO_DATA *iptr = GET_IO_DATA_PTR();
     IO_STREAM_REC *pr;
     char *p_buf;
-    if(id < 0 || id >= IO_MAX_NUM)
+    if (id < 0 || id >= IO_MAX_NUM)
     {
         return IO_ERR;
     }
     pr = GET_IO_REC_PTR(id);
 
-    if(size == 0)
+    if (size == 0)
     {
-        if(IS_OPENED(pr))
+        if (IS_OPENED(pr))
             return IO_OK;
         else
             return IO_ERR;
     }
-    if(IS_OPENED(pr))
+    if (IS_OPENED(pr))
     {
         return IO_ERR;
     }
-    if((pr->fifo = io_allocate_mem(sizeof(Fifo))) && (p_buf = io_allocate_mem(size * cnt)))
+    if ((pr->fifo = io_allocate_mem(sizeof(Fifo))) && (p_buf = io_allocate_mem(size * cnt)))
     {
-        fifo_InitFifo(pr->fifo, (unsigned char *) p_buf, size * cnt);
+        fifo_InitFifo(pr->fifo, (unsigned char *)p_buf, size * cnt);
 
         pr->fifo->id = id;
         pr->cnt = cnt;
         pr->size = size;
-        *(unsigned int *) &pr->mode = mode;
+        *(unsigned int *)&pr->mode = mode;
         SemaphoreInit(&pr->sem_op);
         SemaphoreInit(&pr->sem);
         pr->sem_select = NULL;
         pr->id = id;
 
-        if(!(pr->mode & O_NONBLOCK))
+        if (!(pr->mode & O_NONBLOCK))
         {
             SemaphoreLock(&pr->sem, 0);
         }
@@ -135,29 +133,29 @@ int io_read(short id, void *buf, int len)
     int ret;
     IO_STREAM_REC *pr;
     IO_DATA *iptr = GET_IO_DATA_PTR();
-    if(id < 0 || id >= IO_MAX_NUM)
+    if (id < 0 || id >= IO_MAX_NUM)
     {
         return IO_ERR;
     }
     pr = GET_IO_REC_PTR(id);
-    if(IS_OPENED(pr))
+    if (IS_OPENED(pr))
     {
-        if(pr->mode & O_NONBLOCK)
+        if (pr->mode & O_NONBLOCK)
         {
-            ret = fifo_ExtrBlock(pr->fifo, (unsigned char *) buf, len);
+            ret = fifo_ExtrBlock(pr->fifo, (unsigned char *)buf, len);
         }
         else
         {
             int real_len;
             SEM_ID *s;
             s = pr->sem_select != NULL ? pr->sem_select : &pr->sem;
-            while((real_len = fifo_GetDataLen(pr->fifo)) < len)
+            while ((real_len = fifo_GetDataLen(pr->fifo)) < len)
             {
-                if(pr->size == 1 && real_len > 0)
+                if (pr->size == 1 && real_len > 0)
                     break;
                 SemaphoreLock(s, 0);
             }
-            ret = fifo_ExtrBlock(pr->fifo, (unsigned char *) buf, len);
+            ret = fifo_ExtrBlock(pr->fifo, (unsigned char *)buf, len);
         }
         return (ret);
     }
@@ -169,34 +167,26 @@ int io_write(short id, const void *buf, int len)
     IO_STREAM_REC *pr;
     int ret;
     IO_DATA *iptr = GET_IO_DATA_PTR();
-    if(id < 0 || id >= IO_MAX_NUM)
+    if (id < 0 || id >= IO_MAX_NUM)
     {
         return IO_ERR;
     }
-    if(len <= 0)
+    if (len <= 0)
         return (0);
 
     pr = GET_IO_REC_PTR(id);
-    if(IS_OPENED(pr))
+    if (IS_OPENED(pr))
     {
-        if(pr->mode & O_OVERWRITE)
-        {
-            // Overwrite element if pipe is full
-            ret = fifo_InsBlock_Overwrite(pr->fifo, (unsigned char *) buf, len, 0);
-        }
-        else
-        {
-            // Don't add element if pipe is full
-            ret = fifo_InsBlock(pr->fifo, (unsigned char *) buf, len);
-        }
-        if(!(pr->mode & O_NONBLOCK) || pr->sem_select != NULL)
+        // Don't add element if pipe is full
+        ret = fifo_InsBlock(pr->fifo, (unsigned char *)buf, len);
+        if (!(pr->mode & O_NONBLOCK) || pr->sem_select != NULL)
         {
             SEM_ID *sem;
             sem = pr->sem_select != NULL ? pr->sem_select : &pr->sem;
             SemaphoreUnlock(sem);
         }
 
-        if(pr->handler)
+        if (pr->handler)
             pr->handler(id);
         return (ret);
     }
@@ -211,61 +201,61 @@ int io_select(int rds_count, short rds_arr[], short *rds_res, int timeout)
     SEM_ID *s = 0;
     int res = IO_UNDEF;
 
-    if(rds_res)
+    if (rds_res)
         *rds_res = IO_MAX_NUM;
-    for(i = 0; i < rds_count; ++i)
+    for (i = 0; i < rds_count; ++i)
     {
-        if(rds_arr[i] < 0 || rds_arr[i] >= IO_MAX_NUM)
+        if (rds_arr[i] < 0 || rds_arr[i] >= IO_MAX_NUM)
         {
             continue;
         }
         pr = GET_IO_REC_PTR(rds_arr[i]);
-        if(!IS_OPENED(pr))
+        if (!IS_OPENED(pr))
         {
             continue;
         }
-        if(pr->sem_select != NULL)
+        if (pr->sem_select != NULL)
         {
             continue;
         }
 
-        if(s == 0)
+        if (s == 0)
             s = &pr->sem;
 
         pr->sem_select = s;
-        if(fifo_GetDataLen(pr->fifo) >= pr->size)
+        if (fifo_GetDataLen(pr->fifo) >= pr->size)
         {
-            if(rds_res)
+            if (rds_res)
                 *rds_res = i;
             res = IO_OK;
             break;
         }
     }
 
-    if(res == IO_UNDEF)
-        if(SemaphoreLock(s, timeout) == 0)
+    if (res == IO_UNDEF)
+        if (SemaphoreLock(s, timeout) == 0)
             res = IO_TIMEOUT;
 
-    for(i = 0; i < rds_count; ++i)
+    for (i = 0; i < rds_count; ++i)
     {
-        if(rds_arr[i] < 0 || rds_arr[i] >= IO_MAX_NUM)
+        if (rds_arr[i] < 0 || rds_arr[i] >= IO_MAX_NUM)
         {
             continue;
         }
         pr = GET_IO_REC_PTR(rds_arr[i]);
-        if(!IS_OPENED(pr))
+        if (!IS_OPENED(pr))
         {
             continue;
         }
-        if(pr->sem_select != s)
+        if (pr->sem_select != s)
         {
             continue;
         }
 
-        if(res == IO_UNDEF && fifo_GetDataLen(pr->fifo) >= pr->size)
+        if (res == IO_UNDEF && fifo_GetDataLen(pr->fifo) >= pr->size)
         {
             res = IO_OK;
-            if(rds_res && *rds_res == IO_MAX_NUM)
+            if (rds_res && *rds_res == IO_MAX_NUM)
                 *rds_res = i;
         }
 
@@ -282,7 +272,7 @@ int io_ioctl(short id, int cmd, ...)
     IO_DATA *iptr = GET_IO_DATA_PTR();
     va_list arg;
 
-    if(id < 0 || id >= IO_MAX_NUM)
+    if (id < 0 || id >= IO_MAX_NUM)
     {
         return IO_ERR;
     }
@@ -290,7 +280,7 @@ int io_ioctl(short id, int cmd, ...)
 
     va_start(arg, cmd);
 
-    if(IS_OPENED(pr))
+    if (IS_OPENED(pr))
     {
         switch (cmd)
         {
@@ -318,19 +308,6 @@ int io_ioctl(short id, int cmd, ...)
 
         res = IO_OK;
     }
-
-    switch (cmd)
-    {
-        case IO_CMD_SET_HANDLER:
-        {
-            unsigned int handler;
-            handler = va_arg(arg, unsigned int);
-            pr->handler = (void (*)(short)) handler;
-            res = IO_OK;
-            break;
-        }
-    }
-
     va_end(arg);
     return (res);
 }

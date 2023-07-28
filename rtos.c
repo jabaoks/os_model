@@ -50,7 +50,7 @@ int os_printf(const char *fmt, ...)
     va_start(arg, fmt);
     ret2 = vsnprintf(ps, max_len, fmt, arg);
     va_end(arg);
-    if(ret2 > 0)
+    if (ret2 > 0)
     {
         pthread_mutex_lock(&mutex_printf);
         write(2, buf, ret + ret2);
@@ -71,14 +71,14 @@ int os_terminate(const char *fmt, ...)
     exit(-1);
 }
 
-void SemaphoreInit(SEM_ID * sem)
+void SemaphoreInit(SEM_ID *sem)
 {
     sem_init(sem, 0, 1);
 }
 
-int SemaphoreLock(SEM_ID * sem, int timeout_ms)
+int SemaphoreLock(SEM_ID *sem, int timeout_ms)
 {
-    if(timeout_ms <= 0)
+    if (timeout_ms <= 0)
     {
         return sem_wait(sem);
     }
@@ -88,27 +88,27 @@ int SemaphoreLock(SEM_ID * sem, int timeout_ms)
         struct timespec ts;
         clock_gettime(CLOCK_REALTIME, &ts);
         ts.tv_nsec += timeout_ms * 1000000;
-        while( ts.tv_nsec > 1000000000 )
+        while (ts.tv_nsec > 1000000000)
         {
             ts.tv_nsec -= 1000000000;
-            ts.tv_sec ++;
+            ts.tv_sec++;
         }
         while ((ret = sem_timedwait(sem, &ts)) == -1 && errno == EINTR)
-               continue;       /* Restart if interrupted by handler */
+            continue; /* Restart if interrupted by handler */
         if (ret == -1)
         {
-        if (errno != ETIMEDOUT)
-            return -1;
-        } 
+            if (errno != ETIMEDOUT)
+                return -1;
+        }
         else
         {
             return 1;
         }
-        return 0; // timeout
+        return 0;  // timeout
     }
 }
 
-void SemaphoreUnlock(SEM_ID * sem)
+void SemaphoreUnlock(SEM_ID *sem)
 {
     sem_post(sem);
 }
